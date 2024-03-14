@@ -1,0 +1,256 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("Select File to Parse")
+Gui.Form..Size(11895,2565)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.txtSourceFile.Create(TextBox,"",True,10710,300,0,75,450,True,0,"Arial",8,-2147483643,2)
+Gui.Form.txtSourceFile.Event(KeyPress,txtSourceFile_KeyPress)
+Gui.Form.lbl1.Create(Label,"File to Parse Path",True,1935,255,0,75,240,True,0,"Arial",8,-2147483633,0)
+Gui.Form.cmdBrowseSourceFile.Create(Button)
+Gui.Form.cmdBrowseSourceFile.Size(855,375)
+Gui.Form.cmdBrowseSourceFile.Position(10845,405)
+Gui.Form.cmdBrowseSourceFile.Caption("^")
+Gui.Form.cmdBrowseSourceFile.Event(Click,cmdBrowseSourceFile_Click)
+Gui.Form.lbl2.Create(Label,"Parse and Save at",True,1935,255,0,75,960,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtTargetFile.Create(TextBox,"",True,10710,300,0,75,1170,True,0,"Arial",8,-2147483643,2)
+Gui.Form.cmdBrowseTargetFile.Create(Button)
+Gui.Form.cmdBrowseTargetFile.Size(855,375)
+Gui.Form.cmdBrowseTargetFile.Position(10845,1125)
+Gui.Form.cmdBrowseTargetFile.Caption("^")
+Gui.Form.cmdBrowseTargetFile.Event(Click,cmdBrowseTargetFile_Click)
+Gui.Form.cmdParse.Create(Button)
+Gui.Form.cmdParse.Size(855,375)
+Gui.Form.cmdParse.Position(60,1635)
+Gui.Form.cmdParse.Caption("Parse")
+Gui.Form.cmdParse.Event(Click,cmdParse_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+v.Global.sDefaultProcessFolder.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	
+	f.ODBC.Connection!conx.OpenCompanyConnection
+	f.Intrinsic.Control.CallSub("Check_And_Create_Custom_Folder","sProject","5484")
+	gui.Form..Show
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Subroutine called from:{6}{1}Error Occurred: {3}{1}Description: {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,v.Ambient.SubroutineCalledFrom,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.UnLoad.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+
+	F.Intrinsic.Control.If(V.ODBC.conx.State,=,1)
+		F.ODBC.Connection!conx.close
+	F.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Subroutine called from:{6}{1}Error Occurred: {3}{1}Description: {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,v.Ambient.SubroutineCalledFrom,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End	
+F.Intrinsic.Control.EndTry
+Program.Sub.UnLoad.End
+
+Program.Sub.Form_UnLoad.Start
+f.Intrinsic.Control.CallSub("Unload")
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdParse_Click.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sSourceFile.Declare
+	v.Local.sSourceContent.Declare
+	v.Local.sTargetFile.Declare
+	v.Local.sTargetContent.Declare
+	v.Local.sHold.Declare
+	v.Local.iCnt.Declare
+	v.Local.sOldLineContent.Declare
+	v.Local.sNewLineContent.Declare
+	
+	v.Local.sRecordType.Declare
+	
+	v.Local.sSourceFile.Set(v.Screen.Form!txtSourceFile.Text.Trim)
+	v.Local.sTargetFile.Set(v.Screen.Form!txtTargetFile.Text.Trim)
+	
+	f.Intrinsic.UI.InvokeWaitDialog("Parsing...")
+	f.Intrinsic.File.File2String(v.Local.sSourceFile,v.Local.sSourceContent)
+	f.Intrinsic.String.Split(v.Local.sSourceContent,v.Ambient.NewLine,v.Local.sSourceContent)
+	
+	'Parsing
+	f.Intrinsic.Control.For(v.Local.iCnt,0,v.Local.sSourceContent.UBound,1)	
+		v.Local.sOldLineContent.Set(v.Local.sSourceContent(v.Local.iCnt))		
+		'Skip 999 records
+		f.Intrinsic.String.RPad("9","9",94,v.Local.sHold)
+		f.Intrinsic.Control.If(v.Local.sOldLineContent,<>,v.Local.sHold)		
+			v.Local.sRecordType.Set(v.Local.sOldLineContent.Left1)
+			f.Intrinsic.Control.SelectCase(v.Local.sRecordType)
+				f.Intrinsic.Control.Case("1")
+					f.Intrinsic.String.RPad(""," ",10,v.Local.sHold)
+					f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sOldLineContent.left3,v.Local.sHold,v.Local.sOldLineContent.Right81,v.Local.sNewLineContent)			
+				f.Intrinsic.Control.Case("5")
+					'Modification 1
+					v.Local.sHold.Set("   CADCACAD         ")
+					f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sOldLineContent.left20,v.Local.sHold,v.Local.sOldLineContent.Right54,v.Local.sNewLineContent)	
+					'Modification 2
+					v.Local.sHold.Set("PURCHASE        ")
+					f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sNewLineContent.left53,v.Local.sHold,v.Local.sNewLineContent.Right25,v.Local.sNewLineContent)
+					'Modification 3
+					f.Intrinsic.String.RPad(""," ",8,v.Local.sHold)
+					f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sNewLineContent.left79,v.Local.sHold,v.Local.sNewLineContent.Right7,v.Local.sNewLineContent)					
+				f.Intrinsic.Control.Case("6")			
+					v.Local.sHold.Set("CA0               ")
+					f.Intrinsic.String.Build("{0}{1}",v.Local.sOldLineContent.left76,v.Local.sHold,v.Local.sNewLineContent)				
+				f.Intrinsic.Control.Case("8")
+					'Modification 1
+					f.Intrinsic.String.Build("8220000000          {0}",v.Local.sOldLineContent.Right74,v.Local.sNewLineContent)	
+					
+					'As service = PDS so will not change the Total Amount from core program
+					
+					'Modification 3
+					f.Intrinsic.String.RPad(""," ",8,v.Local.sHold)
+					f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sNewLineContent.left79,v.Local.sHold,v.Local.sNewLineContent.Right7,v.Local.sNewLineContent)					
+				f.Intrinsic.Control.Case("9")
+					f.Intrinsic.String.RPad("","0",10,v.Local.sHold)
+					f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sOldLineContent.left21,v.Local.sHold,v.Local.sOldLineContent.Right63,v.Local.sNewLineContent)		
+			f.Intrinsic.Control.EndSelect
+			
+			'Prepare v.local.sTargetContent
+			f.Intrinsic.Control.If(v.Local.iCnt,=,0)
+				v.Local.sTargetContent.Set(v.Local.sNewLineContent)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sTargetContent,v.Ambient.NewLine,v.Local.sNewLineContent,v.Local.sTargetContent)
+			f.Intrinsic.Control.EndIf
+			
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	f.Intrinsic.File.String2File(v.Local.sTargetFile,v.Local.sTargetContent)
+	
+	f.Intrinsic.UI.CloseWaitDialog	
+	f.Intrinsic.UI.Msgbox("Done")
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Subroutine called from:{6}{1}Error Occurred: {3}{1}Description: {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,v.Ambient.SubroutineCalledFrom,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdParse_Click.End
+
+Program.Sub.cmdBrowseTargetFile_Click.Start
+f.Intrinsic.Control.Try
+	v.Local..BulkDeclareString(sError,sFilePath)
+	
+	F.Intrinsic.UI.ShowOpenFileDialog(V.Global.sDefaultProcessFolder,"*|*.*","",V.Local.sFilePath)
+	F.Intrinsic.Control.If(V.Local.sFilePath,=,"***CANCEL***")
+		F.Intrinsic.UI.Msgbox("No File Was Selected")
+		F.Intrinsic.Control.ExitSub
+	F.Intrinsic.Control.EndIf
+	gui.Form.txtTargetFile.Text(v.Local.sFilePath)
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Subroutine called from:{6}{1}Error Occurred: {3}{1}Description: {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,v.Ambient.SubroutineCalledFrom,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdBrowseTargetFile_Click.End
+
+Program.Sub.cmdBrowseSourceFile_Click.Start
+f.Intrinsic.Control.Try
+	v.Local..BulkDeclareString(sError,sFilePath)
+	
+	F.Intrinsic.UI.ShowOpenFileDialog(V.Global.sDefaultProcessFolder,"*|*.*","",V.Local.sFilePath)
+	F.Intrinsic.Control.If(V.Local.sFilePath,=,"***CANCEL***")
+		F.Intrinsic.UI.Msgbox("No File Was Selected")
+		F.Intrinsic.Control.ExitSub
+	F.Intrinsic.Control.EndIf
+	gui.Form.txtSourceFile.Text(v.Local.sFilePath)
+	f.Intrinsic.Control.CallSub("txtSourceFile_KeyPress")
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Subroutine called from:{6}{1}Error Occurred: {3}{1}Description: {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,v.Ambient.SubroutineCalledFrom,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdBrowseSourceFile_Click.End
+
+Program.Sub.txtSourceFile_KeyPress.Start
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.sSourceFile.Declare
+	v.Local.sTargetFile.Declare
+	v.Local.sHold.Declare
+		
+	v.Local.sSourceFile.Set(v.Screen.Form!txtSourceFile.Text.Trim)
+	f.Intrinsic.String.Split(v.Local.sSourceFile,".",v.Local.sHold)	
+	f.Intrinsic.String.Build("{0}_Proc_{1}.txt",v.Local.sHold(0),v.Ambient.Now.FormatYYYYMMDDHHNNSS,v.Local.sTargetFile)
+	gui.Form.txtTargetFile.Text(v.Local.sTargetFile	)
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Subroutine called from:{6}{1}Error Occurred: {3}{1}Description: {4}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,v.Ambient.SubroutineCalledFrom,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+
+Program.Sub.txtSourceFile_KeyPress.End
+
+Program.Sub.Check_And_Create_Custom_Folder.Start
+'v.Args.sProject
+f.Intrinsic.Control.Try
+	v.Local.sError.Declare
+	v.Local.bEx.Declare
+	v.Local.sProjectFolder.Declare
+	v.Local.sCustomDir.Declare
+	v.Local.sCompanyCodeFolder.Declare
+	
+	'Global\Custom\Project#\CompanyCode
+	
+	'Check Custom folder
+	f.Intrinsic.String.Build("{0}\Custom",V.Caller.GlobalDir,v.Local.sCustomDir)
+	f.Intrinsic.File.DirExists(v.Local.sCustomDir,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sCustomDir)
+	f.Intrinsic.Control.EndIf
+	
+	'Check Project folder 
+	f.Intrinsic.String.Build("{0}\Custom\{1}",V.Caller.GlobalDir,v.Args.sProject,v.Local.sProjectFolder)
+	f.Intrinsic.File.DirExists(v.Local.sProjectFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sProjectFolder)
+	f.Intrinsic.Control.EndIf
+	
+	'Check CompanyCode folder
+	f.Intrinsic.String.Build("{0}\Custom\{1}\{2}",V.Caller.GlobalDir,v.Args.sProject,v.Caller.CompanyCode,v.Local.sCompanyCodeFolder)
+	f.Intrinsic.File.DirExists(v.Local.sCompanyCodeFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		f.Intrinsic.File.CreateDir(v.Local.sCompanyCodeFolder)
+	f.Intrinsic.Control.EndIf	
+	
+	'Set Default Process folder
+	f.Intrinsic.String.Build("{0}\",v.Local.sCompanyCodeFolder,v.Global.sDefaultProcessFolder)
+	gui.Form.txtSourceFile.Text(v.Global.sDefaultProcessFolder)
+	gui.Form.txtTargetFile.Text(v.Global.sDefaultProcessFolder)
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub("Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Check_And_Create_Custom_Folder.End
+
+
+
